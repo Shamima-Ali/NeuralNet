@@ -2,6 +2,8 @@
 #include <vector>
 #include <string>
 #include "neuron.h"
+#include <fstream>
+#include <sstream>
 
 using namespace std;
 
@@ -19,10 +21,10 @@ void create_neurons(vector<Neuron> &neu, int num) {
     }
 }
 
-int main()
-{
+int main() {
     // create_neurons(784, 15, 10);
 
+    // TODO: create vector of neurons to remove repitions
     int inputs_num = 784;
     vector<Neuron> inputs;
     create_neurons(inputs, inputs_num);
@@ -37,9 +39,36 @@ int main()
 
     // prepare input
 
+    // get pic
+    fstream fin;
+    fin.open("img.csv", ios::in);
 
+    
+    string temp, word;
+    int i = 0;
+    int position = 0;
 
+    while (getline(fin, word)) {
+        stringstream ss (word);
+        string w;
+        vector<int> vals;
+        
+        while (getline(ss, w, ','))
+        {
+            vals.push_back(stoi(w));
+        }
 
+        for (int i = position; i < vals.size(); i++) {
+            inputs[i].setInput(vals[i]);
+        }
+
+        vals.clear();
+        
+        i++;
+        if (i % 28 == 0) {
+            cout << "end of pic " << word << endl;
+        }
+    }
 }
 
 

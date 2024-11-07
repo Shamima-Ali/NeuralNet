@@ -9,14 +9,14 @@ print ("supp")
 file = 'data/train-images-idx3-ubyte'
 arr = idx2numpy.convert_from_file(file)
 
-with open('img.csv', 'w', newline='') as csvfile:
-    imgwriter = csv.writer(csvfile, delimiter=' ')
+with open('img.csv', 'w') as csvfile:
+    imgwriter = csv.writer(csvfile)
     n = len(arr[0])
     print(n)
-    for i in range(6) :
-        for j in range( n) :
+    for i in range(6):
+        for j in range(n):
             imgwriter.writerow(arr[i][j])
-        imgwriter.writerow([i, "-----"])
+        # imgwriter.writerow("")
 
 
 ## To check the images.
