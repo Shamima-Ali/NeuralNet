@@ -43,7 +43,7 @@ class Neuron {
     // }
 
     void applySigmoid(double z) {
-        activationValue = z / (1 + exp(z));
+        activationValue = z / (1 + exp(-z));
     }
 
 } ;
