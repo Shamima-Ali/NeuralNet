@@ -13,7 +13,7 @@ with open('img.csv', 'w') as csvfile:
     imgwriter = csv.writer(csvfile)
     n = len(arr[0])
     
-    for i in range(6):
+    for i in range(1):
         for j in range(n):
             imgwriter.writerow(arr[i][j])
         # print(i)
