@@ -7,45 +7,50 @@
 
 using namespace std;
 
-void run_network(vector<Neuron> &inputs, vector<Neuron> &middle, vector<Neuron> &outputs) {
+void run_input_middle_layers(vector<Neuron> &inputs, vector<Neuron> &middle, vector< vector<float> > &inp_mid_weights, vector<float> &bias) {
     // cout << "geting = " <<  inputs[782].getInput() << endl;
-    for (Neuron in : inputs) {
-        
-        // cout << in.getOutput() << endl;
-    }
+    // int size = inp_mid_weights.size();
+    int mid_neuron_position = 0;
+    double mid_neuron_input = 0;
+  
+    
 
 
 }
 
-void create_neurons(vector<Neuron> &neu, int num) {
-    for(int i = 0; i < num; i++) {
-        Neuron n;
-        double rand_weight = ((double) rand() / (RAND_MAX)) + 1;;
-        n.setWeight((rand_weight + 1) / 10);
-
-        double rand_bias = ((rand() % 10) + 1) / 10;
-        n.setBias((rand_bias + 1) / 10);
-        
-        neu.push_back(n);
+// x = input, y = out
+void create_neuron_properties(vector< vector<float> > &prop, int x, int y) {
+    for(int i = 0; i < x; i++) {
+        vector<float> temp;
+        for (int j = 0; j < y; j++) {
+            double rand_weight = ((double) rand() / (RAND_MAX)) + 1;
+            temp.push_back((rand_weight + 1) / 10);
+        }
+        prop.push_back(temp);
     }
+
+    // cout << prop.size() << endl;
+    // cout << prop[0].size() << endl;
 }
 
 int main() {
     // create_neurons(784, 15, 10);
 
-    // TODO: create vector of neurons to remove repitions
+    // TODO: remove repitions
+    vector< vector<float> > inp_mid_weights;
     int inputs_num = 784;
-    vector<Neuron> inputs;
-    create_neurons(inputs, inputs_num);
+    vector<Neuron> inputs(inputs_num);
 
-    int mids_num = 15;
-    vector<Neuron> middle;
-    create_neurons(middle, mids_num);
+    vector< vector<float> > mid_out_weights;
+    vector<float> bias;
+    int mid_num = 15;
+    vector<Neuron> middle(mid_num);
+    create_neuron_properties(inp_mid_weights, inputs_num, mid_num);
+    // create_neuron_properties(mid_num, bias);
 
     int outputs_num = 10;
-    vector<Neuron> outputs;
-    create_neurons(outputs, outputs_num);
-
+    vector<Neuron> outputs(outputs_num);
+    create_neuron_properties(mid_out_weights, mid_num, outputs_num);
     // prepare input - using py here heehee
 
     // get pic
@@ -55,13 +60,11 @@ int main() {
     int line = 0;
     int position = 0;
 
-
     // assign each img to input neurons
     while (getline(fin, word)) {
         stringstream ss (word);
         string w;
         line++;
-        
         // assign to neuron
         while (getline(ss, w, ','))
         {
@@ -72,7 +75,7 @@ int main() {
         // end of an img - start learning
         if ((line % 28) == 0) {
             position = 0;
-            run_network(inputs, middle, outputs);
+            // run_network(inputs, middle, outputs, inp_mid_weights, mid_out_weights, bias);
         }
 
     }
@@ -83,3 +86,10 @@ int main() {
 
 // g++ -o dee main.cpp
 // ./dee
+
+
+/*
+ // double rand_weight_in = ((double) rand() / (RAND_MAX)) + 1;;
+    // inp_midd.push_back((rand_weight_in + 1) / 10);
+
+*/

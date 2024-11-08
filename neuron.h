@@ -7,7 +7,8 @@ using namespace std;
 
 class Neuron {
     double weight, input, output, bias, activationValue; // activate
-
+    vector<double> weights;
+    
     public:
     double getWeight() {
         return weight;
