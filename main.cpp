@@ -7,12 +7,21 @@
 
 using namespace std;
 
+void run_network(vector<Neuron> &inputs, vector<Neuron> &middle, vector<Neuron> &outputs) {
+    // cout << "geting = " <<  inputs[782].getInput() << endl;
+    for (Neuron in : inputs) {
+        
+        // cout << in.getOutput() << endl;
+    }
+
+
+}
+
 void create_neurons(vector<Neuron> &neu, int num) {
     for(int i = 0; i < num; i++) {
         Neuron n;
         double rand_weight = ((double) rand() / (RAND_MAX)) + 1;;
         n.setWeight((rand_weight + 1) / 10);
-        // cout << n.getWeight() << endl;
 
         double rand_bias = ((rand() % 10) + 1) / 10;
         n.setBias((rand_bias + 1) / 10);
@@ -30,45 +39,45 @@ int main() {
     create_neurons(inputs, inputs_num);
 
     int mids_num = 15;
-    vector<Neuron> mid1;
-    create_neurons(mid1, mids_num);
+    vector<Neuron> middle;
+    create_neurons(middle, mids_num);
 
     int outputs_num = 10;
     vector<Neuron> outputs;
     create_neurons(outputs, outputs_num);
 
-    // prepare input
+    // prepare input - using py here heehee
 
     // get pic
     fstream fin;
     fin.open("img.csv", ios::in);
-
-    
     string temp, word;
-    int i = 0;
+    int line = 0;
     int position = 0;
 
+
+    // assign each img to input neurons
     while (getline(fin, word)) {
         stringstream ss (word);
         string w;
-        vector<int> vals;
+        line++;
         
+        // assign to neuron
         while (getline(ss, w, ','))
         {
-            vals.push_back(stoi(w));
+            inputs[position].setInput(stoi(w));
+            position++;
         }
 
-        for (int i = position; i < vals.size(); i++) {
-            inputs[i].setInput(vals[i]);
+        // end of an img - start learning
+        if ((line % 28) == 0) {
+            position = 0;
+            run_network(inputs, middle, outputs);
         }
 
-        vals.clear();
-        
-        i++;
-        if (i % 28 == 0) {
-            cout << "end of pic " << word << endl;
-        }
     }
+
+   
 }
 
 

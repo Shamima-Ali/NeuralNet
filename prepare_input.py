@@ -12,11 +12,12 @@ arr = idx2numpy.convert_from_file(file)
 with open('img.csv', 'w') as csvfile:
     imgwriter = csv.writer(csvfile)
     n = len(arr[0])
-    print(n)
+    
     for i in range(6):
         for j in range(n):
             imgwriter.writerow(arr[i][j])
-        # imgwriter.writerow("")
+        # print(i)
+        # imgwriter.writerow([i])
 
 
 ## To check the images.

@@ -6,7 +6,7 @@ using namespace std;
 
 
 class Neuron {
-    double weight, input, output, bias, actValue; // activate
+    double weight, input, output, bias, activationValue; // activate
 
     public:
     double getWeight() {
@@ -18,7 +18,7 @@ class Neuron {
     }
 
     double getOutput() {
-        return output;
+        return activationValue;
     }
 
     double getBias() {
@@ -33,18 +33,17 @@ class Neuron {
         bias = bi;
     }
 
-    void setOutput(double out) {
-        output = out;
-    }
+    // void setOutput(double out) {
+    //     output = out;
+    // }
 
     void setWeight(double wei) {
         weight = wei;
     }
 
-    double applySigmoid() {
+    void applySigmoid() {
         double z = (weight*input) + bias;
-        actValue = z / (1 + exp(z));
-        return actValue;
+        activationValue = z / (1 + exp(z));
     }
 
 } ;
