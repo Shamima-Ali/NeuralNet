@@ -82,12 +82,12 @@ int main() {
 
     // TODO: remove repitions
     vector< vector<float> > inp_mid_weights;
-    int inputs_num = 25;
+    int inputs_num = 784;
     vector<Neuron> inputs(inputs_num);
     cout << "1. Number of inputs neurons = " << inputs.size() << endl;
 
     vector< vector<float> > mid_out_weights;
-    int mid_num = 3;
+    int mid_num = 15;
     vector<Neuron> middle(mid_num);
     cout << "2. Number of middle neurons = " << middle.size() << endl;
     cout << "3. Matrix for inp_mid of " << inputs_num << " and " << mid_num << endl;
@@ -114,7 +114,7 @@ int main() {
     }
     
 
-    int outputs_num = 2;
+    int outputs_num = 10;
     vector<Neuron> outputs(outputs_num);
     cout << "Number of outputs neurons = " << outputs.size() << endl;
     cout << "6. Matrix for mid_out_weights of " << mid_num << " and " << outputs_num << endl;
@@ -142,7 +142,7 @@ int main() {
         }
 
         // end of an img - start learning - line % 28
-        if ((line % 5) == 0) {
+        if ((line % 28) == 0) {
             cout << "7. reached the end of an img. Input neurons after " << endl;
             for (auto i : inputs) {
                 cout << i.getInput() << endl;
@@ -160,19 +160,21 @@ int main() {
             double maxVal = -1;
             
             for (int i = 0; i < outputs.size(); i++) {
-                // cout << i << " " << outputs[i].getOutput() << endl;
                 if (outputs[i].getOutput() > maxVal) {
                     maxVal = outputs[i].getOutput();
                     res = i;
                 }
             }
+            // cout << res << endl;
+            guess.push_back(res);
         }
-
-        guess.push_back(res);
+        
+        
     }
 
-    
-    // cout << res;
+    for (auto i : guess) {
+        cout << "guess = " << i << endl;
+    }    
 }
 
 
