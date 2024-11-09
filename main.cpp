@@ -10,7 +10,8 @@ using namespace std;
 
 ofstream wfile;
 
-void run_input_middle_layers(vector<Neuron> &inputs, vector<Neuron> &middle, vector< vector<float> > &inp_mid_weights, vector<float> &bias) {
+// TODO: combine the run functions cuz they are like basically the same and that's like sooooo not good cus like like....
+void run_input_middle_layers(vector<Neuron> &inputs, vector<Neuron> &middle, vector< vector<double> > &inp_mid_weights, vector<double> &bias) {
     double summed_weights = 0;
     int mid_neuron = 0;
 
@@ -29,14 +30,14 @@ void run_input_middle_layers(vector<Neuron> &inputs, vector<Neuron> &middle, vec
     cout << "9. the middle layer after " << endl;
 }
 
-void run_middle_output_layers(vector<Neuron> &middle, vector<Neuron> &outputs, vector< vector<float> > &mid_out_weights, vector<float> &mid_out_bias) {
+void run_middle_output_layers(vector<Neuron> &middle, vector<Neuron> &outputs, vector< vector<double> > &mid_out_weights, vector<double> &mid_out_bias) {
 
     double summed_weights = 0;
     int out_neuron = 0;
 
     while (out_neuron < outputs.size()) {
         for (int mid_neuron = 0; mid_neuron < middle.size(); mid_neuron++) {
-            summed_weights += middle[mid_neuron].getOutput() * mid_out_weights[mid_neuron][out_neuron];
+            summed_weights += middle[mid_neuron].getActivation() * mid_out_weights[mid_neuron][out_neuron];
         }
 
         double z = summed_weights + mid_out_bias[out_neuron];
@@ -48,15 +49,92 @@ void run_middle_output_layers(vector<Neuron> &middle, vector<Neuron> &outputs, v
 
     cout << "11. the output layer after " << endl;
     // for (auto o : outputs) {
-    //     cout << o.getOutput() << endl;
+    //     cout << o.getActivation() << endl;
     // }
 }
 
+vector<double> calculate_cost (vector<int> &guess, vector<int> &labelVect) {
+    fstream fin;
+    fin.open("label.csv", ios::in);
+    vector<double> cost_functions;
+
+    string temp, word;
+    int line = 0;
+    int position = 0;
+    int res = 0;
+    int labels = 0;
+
+    int max_label = guess.size();
+
+    // get the each label from the file
+    while (getline(fin, word, ',')) {
+        
+        labelVect.push_back(stoi(word));
+        double val = pow(stoi(word) - guess[labels], 2);
+        cost_functions.push_back(val);
+
+        // TODO: Take this out when testing 60k
+        labels++;
+        if (labels == max_label) {
+            break;
+        }
+        
+    }
+    
+    return cost_functions;
+}
+
+/*The calculation:
+
+*/
+vector<vector<double> > get_mid_out_weight_gradient(vector<vector<double> > & mid_out_weights, vector<Neuron> &outputs, vector<Neuron> &middle, vector<int> true_label) {
+    int size = mid_out_weights.size();
+    int sz = mid_out_weights[0].size();
+    vector<vector<double> > weights_grad(size, vector<double>(sz, 0));
+
+    for (int mid_neuron = 0; mid_neuron < size; mid_neuron++) { // 15 mid
+        for (int out_neuron = 0; out_neuron < sz; out_neuron++) { // 10 out
+            double cost_wrt_act =  outputs[out_neuron].getActivation() - true_label[out_neuron];
+            double act_wrt_out = outputs[out_neuron].getActivation()* (1 - outputs[out_neuron].getActivation());
+            double out_wrt_weight =  middle[mid_neuron].getActivation();
+
+            weights_grad[mid_neuron][out_neuron] = cost_wrt_act * act_wrt_out * out_wrt_weight;
+        }
+    }
+    return weights_grad;
+}
+
+vector<double> get_mid_out_bias_gradient(vector<Neuron> &outputs, vector<int> true_label) {
+    vector<double> bias_grad;
+
+    for (int out_neuron = 0; out_neuron < outputs.size(); out_neuron++) { // 10 out
+        double cost_wrt_act =  outputs[out_neuron].getActivation() - true_label[out_neuron];
+        double act_wrt_out = outputs[out_neuron].getActivation()* (1 - outputs[out_neuron].getActivation());
+        double out_wrt_bias =  1;
+
+        bias_grad.push_back(cost_wrt_act * act_wrt_out * out_wrt_bias);
+    }
+    return bias_grad;
+}
+
+vector<double> get_mid_out_error_signal(vector<Neuron> &outputs, vector<int> true_label) {
+    vector<double> err_sign;
+
+    for (int out_neuron = 0; out_neuron < outputs.size(); out_neuron++) { // 10 out
+        double cost_wrt_act =  outputs[out_neuron].getActivation() - true_label[out_neuron];
+        double act_wrt_out = outputs[out_neuron].getActivation()* (1 - outputs[out_neuron].getActivation());
+
+        err_sign.push_back(cost_wrt_act * act_wrt_out);
+    }
+    return err_sign;
+}
+
+
 // x = input, y = out
-void create_neuron_properties(vector< vector<float> > &prop, int x, int y) {    
+void create_neuron_properties(vector< vector<double> > &prop, int x, int y) {    
     srand(time(0));
     for(int i = 0; i < x; i++) {
-        vector<float> temp;
+        vector<double> temp;
         for (int j = 0; j < y; j++) {
 
             double rand_weight = ((double) rand() / (RAND_MAX));
@@ -72,10 +150,10 @@ void create_neuron_properties(vector< vector<float> > &prop, int x, int y) {
 
     
     for (int i = 0; i < prop.size(); i++) {
-        // for (int j = 0; j < prop[0].size(); j++) {
-            wfile << prop[i][0] << endl;
-        //}
-        // wfile << endl;
+        for (int j = 0; j < prop[0].size(); j++) {
+            wfile << prop[i][i] << " ";
+        }
+        wfile << endl;
     }
     
     wfile << "end of weights " << endl;
@@ -86,12 +164,12 @@ int main() {
     vector<int> guess;
 
     // TODO: remove repitions
-    vector< vector<float> > inp_mid_weights;
+    vector< vector<double> > inp_mid_weights;
     int inputs_num = 784;
     vector<Neuron> inputs(inputs_num);
     cout << "1. Number of inputs neurons = " << inputs.size() << endl;
 
-    vector< vector<float> > mid_out_weights;
+    vector< vector<double> > mid_out_weights;
     int mid_num = 15;
     vector<Neuron> middle(mid_num);
     cout << "2. Number of middle neurons = " << middle.size() << endl;
@@ -100,7 +178,7 @@ int main() {
     wfile.open ("weights-in-mid.txt");
     create_neuron_properties(inp_mid_weights, inputs_num, mid_num);
 
-    vector<float> bias;
+    vector<double> bias;
     for (int i = 0; i < mid_num; i++) {
         double rand_weight = ((double) rand() / (RAND_MAX)) + 1;
         bias.push_back((rand_weight + 1) / 100);
@@ -112,7 +190,7 @@ int main() {
     // cout << bias[0] << endl;
 
 
-    vector<float> mid_out_bias;
+    vector<double> mid_out_bias;
     for (int i = 0; i < mid_num; i++) {
         double rand_weight = ((double) rand() / (RAND_MAX)) + 1;
         mid_out_bias.push_back((rand_weight + 1) / 100);
@@ -172,8 +250,8 @@ int main() {
             double maxVal = -1;
             
             for (int i = 0; i < outputs.size(); i++) {
-                if (outputs[i].getOutput() > maxVal) {                  
-                    maxVal = outputs[i].getOutput();
+                if (outputs[i].getActivation() > maxVal) {            
+                    maxVal = outputs[i].getActivation();
                     res = i;
                 }
             }
@@ -181,9 +259,26 @@ int main() {
         }        
     }
 
+    
+
     for (auto i : guess) {
         cout << "guess = " << i << endl;
     }    
+    cout << "____________________________________________" << endl;
+
+    vector<int> labelVect;
+    vector<double> cost_functions = calculate_cost(guess, labelVect);
+    // cout << endl;
+    // for (auto i : cost_functions) {
+    //     cout << "cost_functions = " << i << " ";
+    // }
+    // cout << endl;
+    
+    vector<vector<double> > mo_weights = get_mid_out_weight_gradient(mid_out_weights, outputs, middle, labelVect);
+    vector<double> mo_bias = get_mid_out_bias_gradient(outputs, labelVect);
+    vector<double> err_sig = get_mid_out_error_signal(outputs, labelVect);
+
+    // cout << mo_weights[0].size();
     valfile.close();
 }
 
@@ -195,5 +290,4 @@ int main() {
 /*
  // double rand_weight_in = ((double) rand() / (RAND_MAX)) + 1;;
     // inp_midd.push_back((rand_weight_in + 1) / 10);
-
 */

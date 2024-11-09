@@ -7,7 +7,10 @@ import csv
 # def test() :
 print ("supp")
 file = 'data/train-images-idx3-ubyte'
+file2 = 'data/train-labels-idx1-ubyte'
+
 arr = idx2numpy.convert_from_file(file)
+arr2 = idx2numpy.convert_from_file(file2)
 
 with open('img.csv', 'w') as csvfile:
     imgwriter = csv.writer(csvfile)
@@ -18,6 +21,11 @@ with open('img.csv', 'w') as csvfile:
             imgwriter.writerow(arr[i][j])
         # print(i)
         # imgwriter.writerow([i])
+
+with open('label.csv', 'w') as csvfile:
+    labwriter = csv.writer(csvfile)
+    n = len(arr2)    
+    labwriter.writerow(arr2)
 
 
 ## To check the images.

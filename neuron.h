@@ -18,7 +18,7 @@ class Neuron {
         return input;
     }
 
-    double getOutput() {
+    double getActivation() {
         return activationValue;
     }
 
