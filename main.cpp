@@ -4,19 +4,21 @@
 #include "neuron.h"
 #include <fstream>
 #include <sstream>
+#include <random>
 
 using namespace std;
 
-void run_input_middle_layers(vector<Neuron> &inputs, vector<Neuron> &middle, vector< vector<float> > &inp_mid_weights, vector<float> &bias) {
+ofstream wfile;
 
+void run_input_middle_layers(vector<Neuron> &inputs, vector<Neuron> &middle, vector< vector<float> > &inp_mid_weights, vector<float> &bias) {
     double summed_weights = 0;
     int mid_neuron = 0;
 
     while (mid_neuron < middle.size()) {
+        
         for (int input_neuron = 0; input_neuron < inputs.size(); input_neuron++) {
             summed_weights += inputs[input_neuron].getInput() * inp_mid_weights[input_neuron][mid_neuron];
         }
-
         double z = summed_weights + bias[mid_neuron];
         middle[mid_neuron].setInput(z);
         middle[mid_neuron].applySigmoid(z);
@@ -25,10 +27,6 @@ void run_input_middle_layers(vector<Neuron> &inputs, vector<Neuron> &middle, vec
     }
 
     cout << "9. the middle layer after " << endl;
-    for (auto m : middle) {
-        cout << m.getOutput() << endl;
-    }
-
 }
 
 void run_middle_output_layers(vector<Neuron> &middle, vector<Neuron> &outputs, vector< vector<float> > &mid_out_weights, vector<float> &mid_out_bias) {
@@ -49,18 +47,25 @@ void run_middle_output_layers(vector<Neuron> &middle, vector<Neuron> &outputs, v
     }
 
     cout << "11. the output layer after " << endl;
-    for (auto o : outputs) {
-        cout << o.getOutput() << endl;
-    }
+    // for (auto o : outputs) {
+    //     cout << o.getOutput() << endl;
+    // }
 }
 
 // x = input, y = out
-void create_neuron_properties(vector< vector<float> > &prop, int x, int y) {
+void create_neuron_properties(vector< vector<float> > &prop, int x, int y) {    
+    srand(time(0));
     for(int i = 0; i < x; i++) {
         vector<float> temp;
         for (int j = 0; j < y; j++) {
-            double rand_weight = ((double) rand() / (RAND_MAX)) + 1;
-            temp.push_back((rand_weight + 1) / 10);
+
+            double rand_weight = ((double) rand() / (RAND_MAX));
+            int rand_sign = ((int) rand() / (RAND_MAX/2));
+            if (rand_sign == 0) {
+                temp.push_back(rand_weight*-1);
+            } else {
+                temp.push_back(rand_weight);
+            }            
         }
         prop.push_back(temp);
     }
@@ -68,13 +73,13 @@ void create_neuron_properties(vector< vector<float> > &prop, int x, int y) {
     
     for (int i = 0; i < prop.size(); i++) {
         // for (int j = 0; j < prop[0].size(); j++) {
-            cout << prop[i][0] << endl;
-        // }
-        //cout << endl;
+            wfile << prop[i][0] << endl;
+        //}
+        // wfile << endl;
     }
-
-    // cout << prop.size() << endl;
-    // cout << prop[0].size() << endl;
+    
+    wfile << "end of weights " << endl;
+    // wfile.close();
 }
 
 int main() {
@@ -91,27 +96,31 @@ int main() {
     vector<Neuron> middle(mid_num);
     cout << "2. Number of middle neurons = " << middle.size() << endl;
     cout << "3. Matrix for inp_mid of " << inputs_num << " and " << mid_num << endl;
+
+    wfile.open ("weights-in-mid.txt");
     create_neuron_properties(inp_mid_weights, inputs_num, mid_num);
 
     vector<float> bias;
     for (int i = 0; i < mid_num; i++) {
         double rand_weight = ((double) rand() / (RAND_MAX)) + 1;
-        bias.push_back((rand_weight + 1) / 10);
+        bias.push_back((rand_weight + 1) / 100);
     }
     cout << "4. Vector for bias (inp_mid) of mid_num size" << mid_num << endl;
-    for (auto f : bias) {
-        cout << f << " " << endl;
-    }
+    // for (auto f : bias) {
+    //     cout << f << " " << endl;
+    // }
+    // cout << bias[0] << endl;
+
 
     vector<float> mid_out_bias;
     for (int i = 0; i < mid_num; i++) {
         double rand_weight = ((double) rand() / (RAND_MAX)) + 1;
-        mid_out_bias.push_back((rand_weight + 1) / 10);
+        mid_out_bias.push_back((rand_weight + 1) / 100);
     }
     cout << "5. Vector for bias (mid_num) of mid_num size" << mid_num << endl;
-    for (auto f : mid_out_bias) {
-        cout << f << " " << endl;
-    }
+    // for (auto f : mid_out_bias) {
+    //     cout << f << " " << endl;
+    // }
     
 
     int outputs_num = 10;
@@ -128,9 +137,11 @@ int main() {
     int line = 0;
     int position = 0;
     int res = 0;
+    ofstream valfile;
+    valfile.open ("val.txt");
+
     // assign each img to input neurons
     while (getline(fin, word)) {
-        
         stringstream ss (word);
         string w;
         line++;
@@ -143,11 +154,13 @@ int main() {
 
         // end of an img - start learning - line % 28
         if ((line % 28) == 0) {
-            cout << "7. reached the end of an img. Input neurons after " << endl;
-            for (auto i : inputs) {
-                cout << i.getInput() << endl;
-            }
 
+            cout << "7. reached the end of an img. Input neurons until line " << line << endl;
+            valfile << "reached the end of an img. Input neurons until line " << line << endl;
+            for (int i = 0; i < inputs.size(); i++) {
+                valfile << inputs[i].getInput() << endl;
+            }
+            
             position = 0;
 
             cout << "8. run input middle layer " << endl;
@@ -156,25 +169,22 @@ int main() {
             cout << "10. run middle output layer " << endl;
             run_middle_output_layers(middle, outputs, mid_out_weights, mid_out_bias);
             
-            
             double maxVal = -1;
             
             for (int i = 0; i < outputs.size(); i++) {
-                if (outputs[i].getOutput() > maxVal) {
+                if (outputs[i].getOutput() > maxVal) {                  
                     maxVal = outputs[i].getOutput();
                     res = i;
                 }
             }
-            // cout << res << endl;
             guess.push_back(res);
-        }
-        
-        
+        }        
     }
 
     for (auto i : guess) {
         cout << "guess = " << i << endl;
     }    
+    valfile.close();
 }
 
 
