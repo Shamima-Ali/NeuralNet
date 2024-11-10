@@ -25,6 +25,7 @@ void run_input_middle_layers(vector<Neuron> &inputs, vector<Neuron> &middle, vec
         middle[mid_neuron].applySigmoid(z);
 
         mid_neuron++;
+        summed_weights = 0;
     }
 
     cout << "9. the middle layer after " << endl;
@@ -45,6 +46,7 @@ void run_middle_output_layers(vector<Neuron> &middle, vector<Neuron> &outputs, v
         outputs[out_neuron].applySigmoid(z);
 
         out_neuron++;
+        summed_weights = 0;
     }
 
     cout << "11. the output layer after " << endl;
@@ -53,7 +55,7 @@ void run_middle_output_layers(vector<Neuron> &middle, vector<Neuron> &outputs, v
     // }
 }
 
-vector<double> calculate_cost (vector<int> &guess, vector<int> &labelVect) {
+double calculate_cost (vector<int> &guess, vector<int> &labelVect) {
     fstream fin;
     fin.open("label.csv", ios::in);
     vector<double> cost_functions;
@@ -63,6 +65,7 @@ vector<double> calculate_cost (vector<int> &guess, vector<int> &labelVect) {
     int position = 0;
     int res = 0;
     int labels = 0;
+    double total_err = 0;
 
     int max_label = guess.size();
 
@@ -70,8 +73,7 @@ vector<double> calculate_cost (vector<int> &guess, vector<int> &labelVect) {
     while (getline(fin, word, ',')) {
         
         labelVect.push_back(stoi(word));
-        double val = pow(stoi(word) - guess[labels], 2);
-        cost_functions.push_back(val);
+        total_err += pow(guess[labels] - stoi(word), 2);
 
         // TODO: Take this out when testing 60k
         labels++;
@@ -81,7 +83,7 @@ vector<double> calculate_cost (vector<int> &guess, vector<int> &labelVect) {
         
     }
     
-    return cost_functions;
+    return total_err/2;
 }
 
 /*The calculation:
@@ -98,7 +100,7 @@ vector<vector<double> > get_mid_out_weight_gradient(vector<vector<double> > & mi
             double act_wrt_out = outputs[out_neuron].getActivation()* (1 - outputs[out_neuron].getActivation());
             double out_wrt_weight =  middle[mid_neuron].getActivation();
 
-            weights_grad[mid_neuron][out_neuron] = cost_wrt_act * act_wrt_out * out_wrt_weight;
+            weights_grad[mid_neuron][out_neuron] = 2* cost_wrt_act * act_wrt_out * out_wrt_weight;
         }
     }
     return weights_grad;
@@ -129,6 +131,60 @@ vector<double> get_mid_out_error_signal(vector<Neuron> &outputs, vector<int> tru
     return err_sign;
 }
 
+void update_weights_biases(vector<vector<double> > & weights, vector<double> &biases, double learning_rate, vector<vector<double> >& mo_grad_weights, vector<double>& mo_grad_biases){
+
+    for (int i = 0; i < weights.size(); i++) {
+        for (int j = 0; j < weights[0].size(); j++) {
+            weights[i][j] = weights[i][j] - (learning_rate * mo_grad_weights[i][j]); 
+        }
+    }
+
+    for (int i = 0; i < biases.size(); i++) {
+        biases[i] = biases[i] - (learning_rate * mo_grad_biases[i]);
+    }
+}
+
+// article that saved me - https://mattmazur.com/2015/03/17/a-step-by-step-backpropagation-example/
+            /*
+            double cost_wrt_act = cost_output1_wrt_act_mid1 + cost_output2_wrt_act_mid1 + cost_output3_wrt_act_mid1;
+                // do the next 3 steps for all output neurons - 10 times and then add up like above
+            cost_output1_wrt_act_mid1 = cost_output1_output_output1 * output_output1_wrt_act_mid1
+            cost_output1_output_output1 = cost_output1_wrt_act_output1 * act_output1_wrt_output_output1
+            output_output1_wrt_act_mid1 = mid_out_weight[mid1][out1]
+
+            double act_wrt_out = act * (1 - act)
+            double out_wrt_weight = input
+            */
+
+vector<vector<double> > get_inp_mid_weight_gradient(vector<vector<double> > & mid_out_weights, vector<Neuron> &inputs, vector<double> &err_signals) {
+    int size = mid_out_weights.size();
+    int sz = mid_out_weights[0].size();
+    vector<vector<double> > weights_grad(size, vector<double>(inputs.size(), 0));
+    vector<double> cost_wrt_out;
+
+    for (int mid = 0; mid < size; mid++) { // 15 mid
+        double val = 0;
+        for (int out = 0; out < sz; out++) { // 10 out
+            val += err_signals[out] * mid_out_weights[mid][out]; 
+        }
+        cost_wrt_out.push_back(val);
+    }
+
+    for (int mid = 0; mid < size; mid++) {
+        for (int in = 0; in < inputs.size(); in++) {
+            weights_grad[mid][in] = cost_wrt_out[mid] * inputs[in].getInput();        
+        }
+    }
+    return weights_grad;
+}
+
+
+/*
+   double cost_wrt_act =  inp_mid_weights[in_neuron][mid_neuron];
+            double act_wrt_out = middle[mid_neuron].getActivation()* (1 - middle[mid_neuron].getActivation());
+            double out_wrt_weight =  inputs[in_neuron].getActivation();
+
+*/
 
 // x = input, y = out
 void create_neuron_properties(vector< vector<double> > &prop, int x, int y) {    
@@ -267,16 +323,21 @@ int main() {
     cout << "____________________________________________" << endl;
 
     vector<int> labelVect;
-    vector<double> cost_functions = calculate_cost(guess, labelVect);
+    double total_error = calculate_cost(guess, labelVect);
     // cout << endl;
     // for (auto i : cost_functions) {
     //     cout << "cost_functions = " << i << " ";
     // }
     // cout << endl;
     
-    vector<vector<double> > mo_weights = get_mid_out_weight_gradient(mid_out_weights, outputs, middle, labelVect);
-    vector<double> mo_bias = get_mid_out_bias_gradient(outputs, labelVect);
+    vector<vector<double> > mo_grad_weights = get_mid_out_weight_gradient(mid_out_weights, outputs, middle, labelVect);
+    vector<double> mo_grad_bias = get_mid_out_bias_gradient(outputs, labelVect);
     vector<double> err_sig = get_mid_out_error_signal(outputs, labelVect);
+
+    double learning_rate = 0.01; //b/w 0.001 to 0.1
+    update_weights_biases(mid_out_weights, bias, learning_rate, mo_grad_weights, mo_grad_bias);
+
+    vector<vector<double> > im_grad_weights = get_inp_mid_weight_gradient(mid_out_weights, inputs, err_sig);
 
     // cout << mo_weights[0].size();
     valfile.close();
