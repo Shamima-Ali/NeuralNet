@@ -131,16 +131,16 @@ vector<double> get_mid_out_error_signal(vector<Neuron> &outputs, vector<int> tru
     return err_sign;
 }
 
-void update_weights_biases(vector<vector<double> > & weights, vector<double> &biases, double learning_rate, vector<vector<double> >& mo_grad_weights, vector<double>& mo_grad_biases){
+void update_weights_biases(vector<vector<double> > & weights, vector<double> &biases, double learning_rate, vector<vector<double> >& grad_weights, vector<double>& grad_biases){
 
     for (int i = 0; i < weights.size(); i++) {
         for (int j = 0; j < weights[0].size(); j++) {
-            weights[i][j] = weights[i][j] - (learning_rate * mo_grad_weights[i][j]); 
+            weights[i][j] = weights[i][j] - (learning_rate * grad_weights[i][j]); 
         }
     }
 
     for (int i = 0; i < biases.size(); i++) {
-        biases[i] = biases[i] - (learning_rate * mo_grad_biases[i]);
+        biases[i] = biases[i] - (learning_rate * grad_biases[i]);
     }
 }
 
@@ -156,23 +156,29 @@ void update_weights_biases(vector<vector<double> > & weights, vector<double> &bi
             double out_wrt_weight = input
             */
 
-vector<vector<double> > get_inp_mid_weight_gradient(vector<vector<double> > & mid_out_weights, vector<Neuron> &inputs, vector<double> &err_signals) {
+vector<double> get_inp_mid_error_signal(vector<vector<double> > & mid_out_weights, vector<double> &err_signals) {
+    vector<double> err_sign;
     int size = mid_out_weights.size();
     int sz = mid_out_weights[0].size();
-    vector<vector<double> > weights_grad(size, vector<double>(inputs.size(), 0));
-    vector<double> cost_wrt_out;
 
     for (int mid = 0; mid < size; mid++) { // 15 mid
         double val = 0;
         for (int out = 0; out < sz; out++) { // 10 out
             val += err_signals[out] * mid_out_weights[mid][out]; 
         }
-        cost_wrt_out.push_back(val);
+        err_sign.push_back(val);
     }
+
+    return err_sign;
+}
+
+vector<vector<double> > get_inp_mid_weight_gradient(vector<vector<double> > & mid_out_weights, vector<Neuron> &inputs, vector<double> &inp_mid_err_sig) {
+    int size = mid_out_weights.size();
+    vector<vector<double> > weights_grad(size, vector<double>(inputs.size(), 0));
 
     for (int mid = 0; mid < size; mid++) {
         for (int in = 0; in < inputs.size(); in++) {
-            weights_grad[mid][in] = cost_wrt_out[mid] * inputs[in].getInput();        
+            weights_grad[mid][in] = inp_mid_err_sig[mid] * inputs[in].getInput();        
         }
     }
     return weights_grad;
@@ -185,6 +191,19 @@ vector<vector<double> > get_inp_mid_weight_gradient(vector<vector<double> > & mi
             double out_wrt_weight =  inputs[in_neuron].getActivation();
 
 */
+
+
+vector<double> get_inp_mid_bias_gradient(vector<vector<double> > & mid_out_weights, vector<Neuron> &middle, vector<double> &inp_mid_err_sig) {
+    int size = mid_out_weights.size();
+    vector<double> bias_grad(size, 0);
+
+
+    for (int mid = 0; mid < size; mid++) {
+        bias_grad[mid] = inp_mid_err_sig[mid] * (middle[mid].getActivation() * (1 - middle[mid].getActivation()));    
+    }
+
+    return bias_grad;
+}
 
 // x = input, y = out
 void create_neuron_properties(vector< vector<double> > &prop, int x, int y) {    
@@ -329,17 +348,23 @@ int main() {
     //     cout << "cost_functions = " << i << " ";
     // }
     // cout << endl;
-    
+
+    // TODO: make global vars
+    double learning_rate = 0.01; //b/w 0.001 to 0.1
+
+    // Between the middle and output layers
     vector<vector<double> > mo_grad_weights = get_mid_out_weight_gradient(mid_out_weights, outputs, middle, labelVect);
     vector<double> mo_grad_bias = get_mid_out_bias_gradient(outputs, labelVect);
     vector<double> err_sig = get_mid_out_error_signal(outputs, labelVect);
+    update_weights_biases(mid_out_weights, mid_out_bias, learning_rate, mo_grad_weights, mo_grad_bias);
 
-    double learning_rate = 0.01; //b/w 0.001 to 0.1
-    update_weights_biases(mid_out_weights, bias, learning_rate, mo_grad_weights, mo_grad_bias);
+    // Between the input and middle layers
+    vector<double> inp_mid_err_sig = get_inp_mid_error_signal(mid_out_weights, err_sig);
+    vector<vector<double> > im_grad_weights = get_inp_mid_weight_gradient(mid_out_weights, inputs, inp_mid_err_sig);
+    vector<double> im_grad_bias = get_inp_mid_bias_gradient(mid_out_weights, middle, inp_mid_err_sig);
+    update_weights_biases(inp_mid_weights, bias, learning_rate, im_grad_weights, im_grad_bias);
 
-    vector<vector<double> > im_grad_weights = get_inp_mid_weight_gradient(mid_out_weights, inputs, err_sig);
 
-    // cout << mo_weights[0].size();
     valfile.close();
 }
 
